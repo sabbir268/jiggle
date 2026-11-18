@@ -60,6 +60,25 @@ Apple ID is enough).
    "Open Login Items" and enable Jiggle there. Launch at login only works reliably for the copy in
    `/Applications`.
 
+## Distribute as a DMG
+
+```sh
+scripts/make-dmg.sh                       # dist/Jiggle-<version>.dmg + .sha256
+scripts/make-dmg.sh --release             # also publish GitHub Release v<version> with the DMG
+scripts/make-dmg.sh --release --overwrite # replace the files of an existing release
+```
+
+The version comes from `MARKETING_VERSION` in the Xcode project; bump it before each new release.
+`--release` refuses to run with uncommitted or unpushed changes, so a release always matches the repo.
+
+How the DMG is signed:
+- **Without an Apple Developer account,** the app is signed ad-hoc. People who download it must click
+  **Open Anyway** in System Settings → Privacy & Security once, and the release notes say so.
+- **With a paid Apple Developer Program account,** the DMG is signed and notarized automatically:
+  1. Create a "Developer ID Application" certificate in Xcode → Settings → Accounts → Manage Certificates.
+  2. Save notary credentials once: `xcrun notarytool store-credentials jiggle-notary`.
+  3. Run the script again; it signs, notarizes and staples the DMG.
+
 ## Permissions
 
 | Permission | Needed for | How to grant |
