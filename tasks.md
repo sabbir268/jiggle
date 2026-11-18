@@ -54,4 +54,4 @@ M0–M2.5 give you a usable app; M3–M4 are extras and polish.
 - [ ] Manual checks (`pmset`, `ioreg`, 1-min display sleep, launch/quit a linked app)
 - [x] Remove debug menu, write README.md
 - [ ] Archive, copy to `/Applications`, enable launch at login
-- [ ] Optional: simple app icon
+- [x] Optional: simple app icon
