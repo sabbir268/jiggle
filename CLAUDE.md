@@ -42,10 +42,12 @@ commit with a short clear message (no AI co-author / attribution trailers), list
 | `ClickStrategy.swift` | `JiggleClickStrategy` (wraps Jiggle; click every Nth tick with safety checks; `capturePoint()` 3-s countdown) — M2.5 |
 | `AppWatcher.swift` | Linked apps; `runningLinked`, `frontmostIsLinked`, `shouldBeActive`, `effectiveMode`; NSWorkspace notifications only, no polling — M2.5 |
 | `JiggleEngine.swift` | `@MainActor ObservableObject`: `isActive`, `mode`, `endsAt`, `activeReason`, `warning`; `start(duration:reason:)`, `stop()`, `toggle()`; one `DispatchSourceTimer` |
-| `Permissions.swift` | `AXIsProcessTrusted`, prompt, open Accessibility settings; fall back to Zen + warning — M2 |
+| `Permissions.swift` | `AXIsProcessTrusted`, prompt, open Accessibility settings |
+| `PermissionExplainer.swift`, `UntilPicker.swift`, `WindowPresenter.swift` | Auxiliary AppKit-hosted windows (agent app: no `Window` scenes, which could auto-open at launch) |
+| `StatusText.swift` | Pure menu status line formatting |
 | `MenuView.swift`, `SettingsView.swift`, `LinkedAppsView.swift` | UI — M2 / M2.5 |
 | `HotKey.swift`, `LoginItem.swift`, `PowerMonitor.swift` | Carbon hotkey, `SMAppService`, battery/lock/sleep — M3 |
-| `DebugMenu.swift` | Temporary M1 test menu — **remove in M4** |
+| `DebugMenu.swift` | Temporary "Debug" submenu (Debug builds only) — **remove in M4** |
 
 ### Modes (strength order keepAwake < zen < jiggle < jiggleClick)
 
@@ -67,6 +69,8 @@ commit with a short clear message (no AI co-author / attribution trailers), list
   tick (synthetic events / declared activity) does not count as user input.
 - Assertions stay held while ticks are skipped. Everything is released in `stop()` and on `NSApplication.willTerminate`.
 - Switching mode while active stops the old strategy and starts the new one.
+- `mode` is what the user chose; `runningMode` is what actually runs. A Jiggle mode without Accessibility runs
+  Zen, sets `warning` and calls `onAccessibilityNeeded` (explainer); every tick re-checks and upgrades/downgrades.
 - `JiggleEngine.mode` is the source of truth for the mode (it persists to `UserDefaults`); UI binds to the engine,
   not to `@AppStorage("mode")`.
 - Linked auto (M2.5): `shouldBeActive` true → `start(reason: .linked)` with `effectiveMode ?? mode`; false → stop if

@@ -26,6 +26,15 @@ enum Mode: String, CaseIterable, Codable, Identifiable, Sendable {
     }
 
     var needsAccessibility: Bool { self == .jiggle || self == .jiggleClick }
+
+    var summary: String {
+        switch self {
+        case .keepAwake: "Prevents display and system sleep. No cursor movement, no permissions."
+        case .zen: "Keep Awake, plus resets the system idle timer every interval. No visible motion."
+        case .jiggle: "Zen, plus nudges the cursor a few pixels and back. Needs Accessibility."
+        case .jiggleClick: "Jiggle, plus a click every few ticks. Needs Accessibility."
+        }
+    }
 }
 
 enum ClickButton: String, CaseIterable, Sendable {

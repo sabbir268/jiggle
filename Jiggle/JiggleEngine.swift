@@ -11,9 +11,14 @@ final class JiggleEngine: ObservableObject {
     @Published var mode: Mode {
         didSet { modeDidChange(from: oldValue) }
     }
+    /// The mode actually running: `mode`, or Zen while Accessibility is missing for Jiggle modes.
+    @Published private(set) var runningMode: Mode?
     @Published private(set) var endsAt: Date?
     @Published private(set) var activeReason: ActiveReason?
     @Published var warning: String?
+
+    /// Called when a Jiggle mode is chosen or started without Accessibility permission (shows the explainer).
+    var onAccessibilityNeeded: (() -> Void)?
 
     private let settings: SettingsStore
     private let services: SystemServices
@@ -57,6 +62,7 @@ final class JiggleEngine: ObservableObject {
         strategy?.stop()
         strategy = nil
         lastOwnActivityAt = nil
+        runningMode = nil
         isActive = false
         endsAt = nil
         activeReason = nil
@@ -66,14 +72,18 @@ final class JiggleEngine: ObservableObject {
         isActive ? stop() : start()
     }
 
+    /// Re-arms the pending tick after the interval setting changes, so a shorter interval applies right away.
+    func intervalDidChange() {
+        guard isActive else { return }
+        scheduleNextTick()
+    }
+
     // MARK: - Internals
 
     private func start(endsAt: Date?, reason: ActiveReason) {
         if !isActive {
-            let strategy = makeStrategy(for: mode)
-            strategy.start()
-            self.strategy = strategy
             isActive = true
+            run(resolvedMode(promptIfNeeded: true))
         }
         self.endsAt = endsAt
         activeReason = (endsAt != nil && reason == .manual) ? .timed : reason
@@ -83,11 +93,29 @@ final class JiggleEngine: ObservableObject {
     private func modeDidChange(from oldValue: Mode) {
         guard mode != oldValue else { return }
         settings.mode = mode
-        guard isActive else { return }
+        let resolved = resolvedMode(promptIfNeeded: true)
+        if isActive { run(resolved) }
+    }
+
+    /// `mode`, or Zen when `mode` needs Accessibility and it is missing. Updates `warning`.
+    private func resolvedMode(promptIfNeeded: Bool) -> Mode {
+        guard mode.needsAccessibility, !services.accessibility.isTrusted() else {
+            warning = nil
+            return mode
+        }
+        if warning == nil, promptIfNeeded { onAccessibilityNeeded?() }
+        warning = "\(mode.title) needs Accessibility permission. Running Zen instead."
+        return .zen
+    }
+
+    /// Switches to `newMode`'s strategy if it differs from the one running.
+    private func run(_ newMode: Mode) {
+        guard newMode != runningMode || strategy == nil else { return }
         strategy?.stop()
-        let strategy = makeStrategy(for: mode)
+        let strategy = makeStrategy(for: newMode)
         strategy.start()
         self.strategy = strategy
+        runningMode = newMode
         lastOwnActivityAt = nil
     }
 
@@ -131,6 +159,8 @@ final class JiggleEngine: ObservableObject {
             stop()
             return
         }
+        // Upgrade once Accessibility is granted, or fall back if it is revoked.
+        run(resolvedMode(promptIfNeeded: false))
         let skip = settings.smartPause && SmartPause.shouldSkipTick(
             idleSeconds: services.idle.secondsSinceLastInput(),
             interval: TimeInterval(settings.intervalSeconds),

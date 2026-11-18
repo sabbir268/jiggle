@@ -27,6 +27,16 @@ enum TickScheduling {
         return max(delay, minimumDelay)
     }
 
+    /// The next moment (today or tomorrow) with the hour and minute of `time`, for "Start until…".
+    static func nextOccurrence(of time: Date, after now: Date, calendar: Calendar = .current) -> Date {
+        let parts = calendar.dateComponents([.hour, .minute], from: time)
+        let candidate = calendar.nextDate(
+            after: now, matching: DateComponents(hour: parts.hour, minute: parts.minute, second: 0),
+            matchingPolicy: .nextTime
+        )
+        return candidate ?? now.addingTimeInterval(24 * 60 * 60)
+    }
+
     /// True once `endsAt` has passed (with a little tolerance for timer leeway).
     static func hasEnded(endsAt: Date?, now: Date, tolerance: TimeInterval = 0.5) -> Bool {
         guard let endsAt else { return false }

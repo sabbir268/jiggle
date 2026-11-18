@@ -2,16 +2,27 @@ import SwiftUI
 
 @main
 struct JiggleApp: App {
-    @StateObject private var engine = JiggleEngine()
+    @StateObject private var engine: JiggleEngine
+
+    init() {
+        let engine = JiggleEngine()
+        engine.onAccessibilityNeeded = { PermissionExplainer.show() }
+        _engine = StateObject(wrappedValue: engine)
+    }
 
     var body: some Scene {
         MenuBarExtra {
-            DebugMenuView()
+            MenuView()
                 .environmentObject(engine)
         } label: {
             Image(systemName: menuBarSymbol)
         }
         .menuBarExtraStyle(.menu)
+
+        Settings {
+            SettingsView()
+                .environmentObject(engine)
+        }
     }
 
     private var menuBarSymbol: String {

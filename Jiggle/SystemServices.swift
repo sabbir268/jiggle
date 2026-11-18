@@ -30,6 +30,12 @@ protocol MouseEventPosting: Sendable {
     func moveMouse(to point: CGPoint)
 }
 
+/// Accessibility (synthetic input) permission.
+@MainActor
+protocol AccessibilityChecking: Sendable {
+    func isTrusted() -> Bool
+}
+
 /// Everything the engine and strategies need from the system, so tests can swap in fakes.
 @MainActor
 struct SystemServices {
@@ -37,13 +43,15 @@ struct SystemServices {
     var idle: any IdleTimeProviding
     var cursor: any CursorLocating
     var events: any MouseEventPosting
+    var accessibility: any AccessibilityChecking
 
     static var live: SystemServices {
         SystemServices(
             power: IOKitPowerAssertions(),
             idle: IdleMonitor(),
             cursor: SystemCursor(),
-            events: CGEventPoster()
+            events: CGEventPoster(),
+            accessibility: SystemAccessibility()
         )
     }
 }
