@@ -15,6 +15,7 @@ struct MenuView: View {
             endsAt: engine.endsAt, autoEnabled: watcher.autoEnabled, rule: watcher.rule,
             linkedRunning: watcher.runningLinked.map(\.name), now: Date()
         ))
+        .onAppear { engine.refreshAccessibility() }
         if let warning = engine.warning {
             Label(warning, systemImage: "exclamationmark.triangle")
             Button("Grant Accessibility…") { PermissionExplainer.show() }

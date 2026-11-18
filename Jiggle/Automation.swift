@@ -15,6 +15,7 @@ final class Automation: ObservableObject {
     private let notifier = SessionNotifier()
     private var cancellables: Set<AnyCancellable> = []
     private var defaultsObserver: (any NSObjectProtocol)?
+    private var accessibilityObserver: (any NSObjectProtocol)?
 
     init(engine: JiggleEngine, settings: SettingsStore = SettingsStore(), startServices: Bool = true) {
         self.engine = engine
@@ -52,7 +53,22 @@ final class Automation: ObservableObject {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.apply() }
         }
+        // Posted by macOS whenever the Accessibility list changes. The new trust value can lag the
+        // notification slightly, so re-check shortly after and once more a bit later.
+        accessibilityObserver = DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.accessibility.api"), object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.scheduleAccessibilityRefresh() }
+        }
         apply()
+    }
+
+    private func scheduleAccessibilityRefresh() {
+        for delay in [0.5, 2.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                MainActor.assumeIsolated { self?.engine.refreshAccessibility() }
+            }
+        }
     }
 
     private func apply() {

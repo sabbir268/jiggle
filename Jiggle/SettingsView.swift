@@ -103,7 +103,10 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { loginItem.refresh() }
+        .onAppear {
+            loginItem.refresh()
+            engine.refreshAccessibility()
+        }
         .onChange(of: interval) { _ in engine.intervalDidChange() }
     }
 

@@ -64,6 +64,33 @@ final class JiggleEngineTests: XCTestCase {
         XCTAssertNil(engine.warning)
     }
 
+    func testGrantWhileStoppedClearsWarning() throws {
+        let fakes = Fakes()
+        fakes.accessibility.trusted = false
+        let engine = try makeEngine(fakes, mode: .zen)
+        engine.mode = .jiggle  // Chosen while stopped, without permission.
+        XCTAssertNotNil(engine.warning)
+
+        fakes.accessibility.trusted = true
+        engine.refreshAccessibility()
+        XCTAssertNil(engine.warning)
+        XCTAssertFalse(engine.isActive)
+    }
+
+    func testGrantWhileRunningUpgradesFromZen() throws {
+        let fakes = Fakes()
+        fakes.accessibility.trusted = false
+        let engine = try makeEngine(fakes, mode: .jiggle)
+        engine.start()
+        XCTAssertEqual(engine.runningMode, .zen)
+
+        fakes.accessibility.trusted = true
+        engine.refreshAccessibility()
+        XCTAssertEqual(engine.runningMode, .jiggle)
+        XCTAssertNil(engine.warning)
+        XCTAssertEqual(fakes.power.held.count, 1)
+    }
+
     func testLinkedAutoStartStopAndManualOverride() throws {
         let fakes = Fakes()
         let settings = try makeSettings()

@@ -85,6 +85,13 @@ final class JiggleEngine: ObservableObject {
         isActive ? stop() : start()
     }
 
+    /// Re-checks Accessibility now: clears or sets `warning`, and switches the running strategy if needed.
+    /// Without this, a grant made while Jiggle is stopped would only be noticed on the next start or mode change.
+    func refreshAccessibility() {
+        let resolved = resolvedMode(promptIfNeeded: false)
+        if isActive { run(resolved) }
+    }
+
     /// Re-arms the pending tick after the interval setting changes, so a shorter interval applies right away.
     func intervalDidChange() {
         guard isActive else { return }
