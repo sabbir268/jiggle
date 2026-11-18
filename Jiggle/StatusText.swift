@@ -2,8 +2,25 @@ import Foundation
 
 /// Menu status line text. Pure, so it can be unit tested.
 enum StatusText {
-    static func line(isActive: Bool, mode: Mode?, endsAt: Date?, now: Date) -> String {
-        guard isActive, let mode else { return "Inactive" }
+    /// `linkedRunning` / `rule` are only consulted when linked-app Auto is on (`autoEnabled`).
+    static func line(
+        isActive: Bool,
+        mode: Mode?,
+        reason: ActiveReason?,
+        endsAt: Date?,
+        autoEnabled: Bool,
+        rule: LinkedRule,
+        linkedRunning: [String],
+        now: Date
+    ) -> String {
+        guard isActive, let mode else {
+            guard autoEnabled else { return "Inactive" }
+            if linkedRunning.isEmpty { return "Inactive — no linked app running" }
+            return rule == .frontmost ? "Inactive — no linked app frontmost" : "Inactive"
+        }
+        if reason == .linked, !linkedRunning.isEmpty {
+            return "Active — linked: " + linkedRunning.joined(separator: ", ")
+        }
         var line = "Active — \(mode.title)"
         if let endsAt {
             line += " · " + remaining(endsAt.timeIntervalSince(now))

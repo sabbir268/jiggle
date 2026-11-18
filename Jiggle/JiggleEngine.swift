@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 enum ActiveReason: String, Sendable {
@@ -11,7 +12,7 @@ final class JiggleEngine: ObservableObject {
     @Published var mode: Mode {
         didSet { modeDidChange(from: oldValue) }
     }
-    /// The mode actually running: `mode`, or Zen while Accessibility is missing for Jiggle modes.
+    /// The mode actually running: `mode` (or a linked app's override), or Zen while Accessibility is missing.
     @Published private(set) var runningMode: Mode?
     @Published private(set) var endsAt: Date?
     @Published private(set) var activeReason: ActiveReason?
@@ -27,6 +28,14 @@ final class JiggleEngine: ObservableObject {
     private var timer: DispatchSourceTimer?
     private var lastOwnActivityAt: Date?
     private var terminateObserver: (any NSObjectProtocol)?
+    private var linkedSubscription: AnyCancellable?
+    /// Strongest per-app override among running linked apps; applies only to linked sessions.
+    private var linkedModeOverride: Mode?
+
+    /// The mode this session wants before the Accessibility check.
+    private var desiredMode: Mode {
+        activeReason == .linked ? (linkedModeOverride ?? mode) : mode
+    }
 
     init(
         settings: SettingsStore = SettingsStore(),
@@ -62,6 +71,7 @@ final class JiggleEngine: ObservableObject {
         strategy?.stop()
         strategy = nil
         lastOwnActivityAt = nil
+        linkedModeOverride = nil
         runningMode = nil
         isActive = false
         endsAt = nil
@@ -78,33 +88,63 @@ final class JiggleEngine: ObservableObject {
         scheduleNextTick()
     }
 
+    // MARK: - Linked apps
+
+    /// Follows the watcher: start when a linked app becomes active, stop when none is.
+    /// A manual Start/Stop sticks until the watcher's state changes again.
+    func attach(to watcher: AppWatcher) {
+        linkedSubscription = watcher.$state
+            .removeDuplicates()
+            .sink { [weak self] state in
+                MainActor.assumeIsolated { self?.linkedStateChanged(state) }
+            }
+    }
+
+    private func linkedStateChanged(_ state: LinkedState) {
+        guard state.autoEnabled else {
+            if activeReason == .linked { stop() }
+            return
+        }
+        if state.shouldBeActive {
+            linkedModeOverride = state.effectiveMode
+            if !isActive {
+                start(endsAt: nil, reason: .linked)
+            } else if activeReason == .linked {
+                run(resolvedMode(promptIfNeeded: false))
+            }
+        } else if activeReason == .linked {
+            stop()
+        }
+    }
+
     // MARK: - Internals
 
     private func start(endsAt: Date?, reason: ActiveReason) {
-        if !isActive {
-            isActive = true
-            run(resolvedMode(promptIfNeeded: true))
-        }
         self.endsAt = endsAt
         activeReason = (endsAt != nil && reason == .manual) ? .timed : reason
+        isActive = true
+        // Automatic starts never pop up the permission explainer; the menu warning is enough.
+        run(resolvedMode(promptIfNeeded: reason == .manual || reason == .timed))
         scheduleNextTick()
     }
 
     private func modeDidChange(from oldValue: Mode) {
         guard mode != oldValue else { return }
         settings.mode = mode
+        if activeReason == .linked, linkedModeOverride != nil { return }  // An app override wins.
         let resolved = resolvedMode(promptIfNeeded: true)
         if isActive { run(resolved) }
     }
 
-    /// `mode`, or Zen when `mode` needs Accessibility and it is missing. Updates `warning`.
+    /// `desiredMode`, or Zen when it needs Accessibility and that is missing. Updates `warning`.
     private func resolvedMode(promptIfNeeded: Bool) -> Mode {
-        guard mode.needsAccessibility, !services.accessibility.isTrusted() else {
+        let wanted = desiredMode
+        guard wanted.needsAccessibility, !services.accessibility.isTrusted() else {
             warning = nil
-            return mode
+            return wanted
         }
         if warning == nil, promptIfNeeded { onAccessibilityNeeded?() }
-        warning = "\(mode.title) needs Accessibility permission. Running Zen instead."
+        warning = "\(wanted.title) needs Accessibility permission. Running Zen instead."
         return .zen
     }
 
@@ -126,9 +166,10 @@ final class JiggleEngine: ObservableObject {
             return KeepAwakeStrategy(power: services.power)
         case .zen:
             return ZenStrategy(power: services.power)
-        case .jiggle, .jiggleClick:
-            // Jiggle + Click uses plain Jiggle until JiggleClickStrategy lands (M2.5).
+        case .jiggle:
             return JiggleStrategy(services: services) { settings.jiggleDistance }
+        case .jiggleClick:
+            return JiggleClickStrategy(services: services, settings: settings)
         }
     }
 

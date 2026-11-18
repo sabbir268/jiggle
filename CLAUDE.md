@@ -39,13 +39,14 @@ commit with a short clear message (no AI co-author / attribution trailers), list
 | `IdleMonitor.swift` | `secondsSinceLastInput()` via `CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)`; pure smart-pause decision |
 | `TickScheduling.swift` | Pure helpers: jitter (±20 %), `endsAt`, next-tick delay, Cocoa→CG coordinate conversion |
 | `ActivityStrategy.swift` | `protocol ActivityStrategy { start(); tick(); stop() }` + `KeepAwakeStrategy`, `ZenStrategy`, `JiggleStrategy` |
-| `ClickStrategy.swift` | `JiggleClickStrategy` (wraps Jiggle; click every Nth tick with safety checks; `capturePoint()` 3-s countdown) — M2.5 |
-| `AppWatcher.swift` | Linked apps; `runningLinked`, `frontmostIsLinked`, `shouldBeActive`, `effectiveMode`; NSWorkspace notifications only, no polling — M2.5 |
+| `ClickStrategy.swift` | Pure `ClickDecision.evaluate` (skip reasons), `JiggleClickStrategy` (wraps Jiggle), `ClickPointCapture` (3-s countdown shown in the menu bar) |
+| `AppWatcher.swift` | Owns `linkedApps`, `rule`, `autoEnabled`; publishes running/frontmost state and a deduplicated `LinkedState` for the engine |
+| `Workspace.swift` | `WorkspaceProviding` (NSWorkspace running/frontmost apps, launch/terminate/activate notifications, icons) + live impl |
 | `JiggleEngine.swift` | `@MainActor ObservableObject`: `isActive`, `mode`, `endsAt`, `activeReason`, `warning`; `start(duration:reason:)`, `stop()`, `toggle()`; one `DispatchSourceTimer` |
 | `Permissions.swift` | `AXIsProcessTrusted`, prompt, open Accessibility settings |
 | `PermissionExplainer.swift`, `UntilPicker.swift`, `WindowPresenter.swift` | Auxiliary AppKit-hosted windows (agent app: no `Window` scenes, which could auto-open at launch) |
 | `StatusText.swift` | Pure menu status line formatting |
-| `MenuView.swift`, `SettingsView.swift`, `LinkedAppsView.swift` | UI — M2 / M2.5 |
+| `MenuView.swift`, `SettingsView.swift`, `ClickSettingsView.swift`, `LinkedAppsView.swift` | UI. Settings tab selection lives in `UserDefaults` key `settingsTab` so menu items can open a given tab |
 | `HotKey.swift`, `LoginItem.swift`, `PowerMonitor.swift` | Carbon hotkey, `SMAppService`, battery/lock/sleep — M3 |
 | `DebugMenu.swift` | Temporary "Debug" submenu (Debug builds only) — **remove in M4** |
 
@@ -73,7 +74,8 @@ commit with a short clear message (no AI co-author / attribution trailers), list
   Zen, sets `warning` and calls `onAccessibilityNeeded` (explainer); every tick re-checks and upgrades/downgrades.
 - `JiggleEngine.mode` is the source of truth for the mode (it persists to `UserDefaults`); UI binds to the engine,
   not to `@AppStorage("mode")`.
-- Linked auto (M2.5): `shouldBeActive` true → `start(reason: .linked)` with `effectiveMode ?? mode`; false → stop if
+- Linked auto: automatic starts never pop up the permission explainer. An app's mode override wins over the global mode during linked sessions.
+- Linked auto: `shouldBeActive` true → `start(reason: .linked)` with `effectiveMode ?? mode`; false → stop if
   `activeReason == .linked`. Manual Start/Stop overrides auto until the next AppWatcher change.
 
 ### Settings keys and defaults

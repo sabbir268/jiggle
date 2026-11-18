@@ -1,10 +1,30 @@
 import SwiftUI
 
+enum SettingsTab: String {
+    case general, click, linked
+
+    static let storageKey = "settingsTab"
+
+    static func select(_ tab: SettingsTab?) {
+        guard let tab else { return }
+        UserDefaults.standard.set(tab.rawValue, forKey: storageKey)
+    }
+}
+
 struct SettingsView: View {
+    @AppStorage(SettingsTab.storageKey) private var tab = SettingsTab.general.rawValue
+
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             GeneralSettingsView()
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general.rawValue)
+            ClickSettingsView()
+                .tabItem { Label("Click", systemImage: "cursorarrow.click.2") }
+                .tag(SettingsTab.click.rawValue)
+            LinkedAppsView()
+                .tabItem { Label("Linked Apps", systemImage: "link") }
+                .tag(SettingsTab.linked.rawValue)
         }
         .frame(width: 520, height: 400)
     }

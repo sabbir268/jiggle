@@ -28,6 +28,13 @@ protocol CursorLocating: Sendable {
 @MainActor
 protocol MouseEventPosting: Sendable {
     func moveMouse(to point: CGPoint)
+    func postMouseButton(_ button: ClickButton, down: Bool, at point: CGPoint)
+}
+
+/// Modifier keys currently held.
+@MainActor
+protocol ModifierFlagsProviding: Sendable {
+    func currentFlags() -> CGEventFlags
 }
 
 /// Accessibility (synthetic input) permission.
@@ -44,6 +51,8 @@ struct SystemServices {
     var cursor: any CursorLocating
     var events: any MouseEventPosting
     var accessibility: any AccessibilityChecking
+    var modifiers: any ModifierFlagsProviding
+    var workspace: any WorkspaceProviding
 
     static var live: SystemServices {
         SystemServices(
@@ -51,7 +60,9 @@ struct SystemServices {
             idle: IdleMonitor(),
             cursor: SystemCursor(),
             events: CGEventPoster(),
-            accessibility: SystemAccessibility()
+            accessibility: SystemAccessibility(),
+            modifiers: SystemModifierFlags(),
+            workspace: LiveWorkspace()
         )
     }
 }
@@ -93,5 +104,27 @@ struct CGEventPoster: MouseEventPosting {
         let source = CGEventSource(stateID: .hidSystemState)
         CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?
             .post(tap: .cghidEventTap)
+    }
+
+    func postMouseButton(_ button: ClickButton, down: Bool, at point: CGPoint) {
+        let type: CGEventType = switch (button, down) {
+        case (.left, true): .leftMouseDown
+        case (.left, false): .leftMouseUp
+        case (.right, true): .rightMouseDown
+        case (.right, false): .rightMouseUp
+        }
+        let source = CGEventSource(stateID: .hidSystemState)
+        let event = CGEvent(
+            mouseEventSource: source, mouseType: type, mouseCursorPosition: point,
+            mouseButton: button == .left ? .left : .right
+        )
+        event?.setIntegerValueField(.mouseEventClickState, value: 1)
+        event?.post(tap: .cghidEventTap)
+    }
+}
+
+struct SystemModifierFlags: ModifierFlagsProviding {
+    func currentFlags() -> CGEventFlags {
+        CGEventSource.flagsState(.combinedSessionState)
     }
 }
