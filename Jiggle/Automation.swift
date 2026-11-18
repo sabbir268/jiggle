@@ -16,7 +16,7 @@ final class Automation: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var defaultsObserver: (any NSObjectProtocol)?
 
-    init(engine: JiggleEngine, settings: SettingsStore = SettingsStore()) {
+    init(engine: JiggleEngine, settings: SettingsStore = SettingsStore(), startServices: Bool = true) {
         self.engine = engine
         self.settings = settings
         hotKey = HotKey { [weak engine] in engine?.toggle() }
@@ -45,6 +45,7 @@ final class Automation: ObservableObject {
             }
             .store(in: &cancellables)
 
+        guard startServices else { return }
         power.start()
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: nil, queue: .main

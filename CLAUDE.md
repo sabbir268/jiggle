@@ -17,7 +17,11 @@ task checklist: `tasks.md`. This file is the working summary for coding sessions
 
 ```sh
 xcodebuild -scheme Jiggle -configuration Debug build
+xcodebuild -scheme Jiggle -configuration Debug test
 ```
+
+Under XCTest (`XCTestConfigurationFilePath` set) the app skips linked-app and automation wiring, so tests
+never start a real session.
 
 `xcode-select` on this machine points at the Command Line Tools, so prefix with
 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` (or run `sudo xcode-select -s /Applications/Xcode.app`).
@@ -51,7 +55,7 @@ commit with a short clear message (no AI co-author / attribution trailers), list
 | `Scheduler.swift`, `SessionNotifier.swift` | Pure `ScheduleWindow.contains` + 1-minute edge-based checker; timed-session-ended notification |
 | `Automation.swift` | Owns the M3 extras; re-applies settings on `UserDefaults.didChangeNotification` |
 | `*SettingsView.swift` | One file per Settings tab (General, Click, Linked Apps, Schedule, Power, Shortcut) |
-| `DebugMenu.swift` | Temporary "Debug" submenu (Debug builds only) — **remove in M4** |
+| `JiggleTests/` | Hosted XCTest bundle (macOS 14 target, required by Xcode 27's XCTest). `Fakes.swift` fakes every system protocol |
 
 ### Modes (strength order keepAwake < zen < jiggle < jiggleClick)
 
@@ -100,3 +104,5 @@ batteryGuardPercent 20 · stopOnLock true · resumeOnUnlock false · scheduleEna
 - Idle CPU < 0.5 %, memory < 30 MB: no polling loops besides the single tick timer and the 1-minute schedule check;
   app tracking is notification-driven.
 - Every assertion created must be released on every stop path; manual test notes always include `pmset -g assertions`.
+- Never compare `Date`s with `<=` or `>=`: with the Xcode 27 toolchain on macOS 27 they segfault (null jump in
+  `Date.>=`). Compare `timeIntervalSince(_:)` values instead; `<`, `>` and `==` are fine.

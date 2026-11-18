@@ -40,7 +40,8 @@ enum TickScheduling {
     /// True once `endsAt` has passed (with a little tolerance for timer leeway).
     static func hasEnded(endsAt: Date?, now: Date, tolerance: TimeInterval = 0.5) -> Bool {
         guard let endsAt else { return false }
-        return now.addingTimeInterval(tolerance) >= endsAt
+        // Compare seconds, not `Date`s: `Date >=`/`<=` crash on macOS 27 with the Xcode 27 toolchain.
+        return endsAt.timeIntervalSince(now) <= tolerance
     }
 }
 

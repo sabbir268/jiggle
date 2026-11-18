@@ -106,7 +106,7 @@ final class JiggleEngine: ObservableObject {
     /// Restarts a session that was stopped by lock/sleep, if it is still meaningful.
     func resume(reason: ActiveReason, endsAt: Date?) {
         guard !isActive else { return }
-        if let endsAt, endsAt <= now() { return }
+        if let endsAt, endsAt.timeIntervalSince(now()) <= 0 { return }  // Not `Date <=` (see TickScheduling).
         if reason == .linked {
             if let lastLinkedState { linkedStateChanged(lastLinkedState) }
         } else {

@@ -39,9 +39,6 @@ struct MenuView: View {
             }
             .disabled(capture.countdown != nil)
         }
-        #if DEBUG
-        DebugMenu()
-        #endif
         Divider()
         SettingsMenuButton(title: "Settings…", tab: nil)
             .keyboardShortcut(",")
