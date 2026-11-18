@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum SettingsTab: String {
-    case general, click, linked
+    case general, click, linked, schedule, power, shortcut
 
     static let storageKey = "settingsTab"
 
@@ -25,6 +25,15 @@ struct SettingsView: View {
             LinkedAppsView()
                 .tabItem { Label("Linked Apps", systemImage: "link") }
                 .tag(SettingsTab.linked.rawValue)
+            ScheduleSettingsView()
+                .tabItem { Label("Schedule", systemImage: "calendar") }
+                .tag(SettingsTab.schedule.rawValue)
+            PowerSettingsView()
+                .tabItem { Label("Power", systemImage: "battery.75") }
+                .tag(SettingsTab.power.rawValue)
+            ShortcutSettingsView()
+                .tabItem { Label("Shortcut", systemImage: "keyboard") }
+                .tag(SettingsTab.shortcut.rawValue)
         }
         .frame(width: 520, height: 400)
     }
@@ -32,6 +41,8 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @EnvironmentObject private var engine: JiggleEngine
+    @EnvironmentObject private var loginItem: LoginItem
+    @AppStorage(SettingsKey.notifyOnSessionEnd) private var notify = SettingsDefault.notifyOnSessionEnd
     @AppStorage(SettingsKey.intervalSeconds) private var interval = SettingsDefault.intervalSeconds
     @AppStorage(SettingsKey.jitterEnabled) private var jitter = SettingsDefault.jitterEnabled
     @AppStorage(SettingsKey.smartPause) private var smartPause = SettingsDefault.smartPause
@@ -70,8 +81,29 @@ struct GeneralSettingsView: View {
                     Text("Jiggle distance: \(distance) px")
                 }
             }
+            Section {
+                Toggle("Launch at login", isOn: Binding(
+                    get: { loginItem.isEnabled || loginItem.needsApproval },
+                    set: { loginItem.setEnabled($0) }
+                ))
+                if loginItem.needsApproval {
+                    HStack {
+                        Text("Approve Jiggle in Login Items to finish.")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Open Login Items") { loginItem.openLoginItemsSettings() }
+                    }
+                }
+                if let error = loginItem.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                Toggle("Notify me when a timed session ends", isOn: $notify)
+            }
         }
         .formStyle(.grouped)
+        .onAppear { loginItem.refresh() }
         .onChange(of: interval) { _ in engine.intervalDidChange() }
     }
 

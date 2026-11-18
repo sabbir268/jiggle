@@ -20,6 +20,8 @@ final class JiggleEngine: ObservableObject {
 
     /// Called when a Jiggle mode is chosen or started without Accessibility permission (shows the explainer).
     var onAccessibilityNeeded: (() -> Void)?
+    /// Called when a timed session reaches its end time on its own.
+    var onTimedSessionEnded: (() -> Void)?
 
     private let settings: SettingsStore
     private let services: SystemServices
@@ -31,6 +33,7 @@ final class JiggleEngine: ObservableObject {
     private var linkedSubscription: AnyCancellable?
     /// Strongest per-app override among running linked apps; applies only to linked sessions.
     private var linkedModeOverride: Mode?
+    private var lastLinkedState: LinkedState?
 
     /// The mode this session wants before the Accessibility check.
     private var desiredMode: Mode {
@@ -100,7 +103,19 @@ final class JiggleEngine: ObservableObject {
             }
     }
 
+    /// Restarts a session that was stopped by lock/sleep, if it is still meaningful.
+    func resume(reason: ActiveReason, endsAt: Date?) {
+        guard !isActive else { return }
+        if let endsAt, endsAt <= now() { return }
+        if reason == .linked {
+            if let lastLinkedState { linkedStateChanged(lastLinkedState) }
+        } else {
+            start(endsAt: endsAt, reason: reason)
+        }
+    }
+
     private func linkedStateChanged(_ state: LinkedState) {
+        lastLinkedState = state
         guard state.autoEnabled else {
             if activeReason == .linked { stop() }
             return
@@ -119,11 +134,12 @@ final class JiggleEngine: ObservableObject {
 
     // MARK: - Internals
 
-    private func start(endsAt: Date?, reason: ActiveReason) {
+    /// Starts (or updates) a session ending at `endsAt` (nil: indefinitely).
+    func start(endsAt: Date?, reason: ActiveReason) {
         self.endsAt = endsAt
         activeReason = (endsAt != nil && reason == .manual) ? .timed : reason
         isActive = true
-        // Automatic starts never pop up the permission explainer; the menu warning is enough.
+        // Automatic starts (linked, schedule) never pop up the permission explainer; the menu warning is enough.
         run(resolvedMode(promptIfNeeded: reason == .manual || reason == .timed))
         scheduleNextTick()
     }
@@ -197,7 +213,9 @@ final class JiggleEngine: ObservableObject {
         guard isActive else { return }
         let current = now()
         if TickScheduling.hasEnded(endsAt: endsAt, now: current) {
+            let wasTimed = activeReason == .timed
             stop()
+            if wasTimed { onTimedSessionEnded?() }
             return
         }
         // Upgrade once Accessibility is granted, or fall back if it is revoked.

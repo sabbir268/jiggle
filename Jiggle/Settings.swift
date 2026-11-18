@@ -82,6 +82,7 @@ enum SettingsKey {
     static let scheduleDays = "scheduleDays"
     static let scheduleStart = "scheduleStart"
     static let scheduleEnd = "scheduleEnd"
+    static let notifyOnSessionEnd = "notifyOnSessionEnd"
 }
 
 enum SettingsDefault {
@@ -118,6 +119,7 @@ enum SettingsDefault {
     /// Minutes after midnight.
     static let scheduleStart = 9 * 60
     static let scheduleEnd = 18 * 60
+    static let notifyOnSessionEnd = true
 
     static var registrationDictionary: [String: Any] {
         [
@@ -142,6 +144,7 @@ enum SettingsDefault {
             SettingsKey.scheduleDays: scheduleDays,
             SettingsKey.scheduleStart: scheduleStart,
             SettingsKey.scheduleEnd: scheduleEnd,
+            SettingsKey.notifyOnSessionEnd: notifyOnSessionEnd,
         ]
     }
 }
@@ -154,6 +157,15 @@ enum ListCoding {
         string.split(separator: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+    }
+}
+
+/// `Calendar` weekdays stored as `"2,3,4"`.
+enum DayCoding {
+    static func encode(_ days: Set<Int>) -> String { days.sorted().map(String.init).joined(separator: ",") }
+
+    static func decode(_ string: String) -> Set<Int> {
+        Set(string.split(separator: ",").compactMap { Int($0) }.filter { (1...7).contains($0) })
     }
 }
 
@@ -221,6 +233,16 @@ struct SettingsStore {
             defaults.set(try? JSONEncoder().encode(newValue), forKey: SettingsKey.linkedApps)
         }
     }
+
+    var hotkeyEnabled: Bool { defaults.bool(forKey: SettingsKey.hotkeyEnabled) }
+    var batteryGuardPercent: Int { clamped(SettingsKey.batteryGuardPercent, 0...100) }
+    var stopOnLock: Bool { defaults.bool(forKey: SettingsKey.stopOnLock) }
+    var resumeOnUnlock: Bool { defaults.bool(forKey: SettingsKey.resumeOnUnlock) }
+    var scheduleEnabled: Bool { defaults.bool(forKey: SettingsKey.scheduleEnabled) }
+    var scheduleDays: Set<Int> { DayCoding.decode(defaults.string(forKey: SettingsKey.scheduleDays) ?? "") }
+    var scheduleStart: Int { clamped(SettingsKey.scheduleStart, 0...(24 * 60 - 1)) }
+    var scheduleEnd: Int { clamped(SettingsKey.scheduleEnd, 0...(24 * 60 - 1)) }
+    var notifyOnSessionEnd: Bool { defaults.bool(forKey: SettingsKey.notifyOnSessionEnd) }
 
     private func clamped(_ key: String, _ range: ClosedRange<Int>) -> Int {
         min(max(defaults.integer(forKey: key), range.lowerBound), range.upperBound)

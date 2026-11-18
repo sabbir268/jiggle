@@ -5,6 +5,7 @@ struct JiggleApp: App {
     @StateObject private var engine: JiggleEngine
     @StateObject private var watcher: AppWatcher
     @StateObject private var capture: ClickPointCapture
+    @StateObject private var automation: Automation
 
     init() {
         let engine = JiggleEngine()
@@ -14,6 +15,7 @@ struct JiggleApp: App {
         _engine = StateObject(wrappedValue: engine)
         _watcher = StateObject(wrappedValue: watcher)
         _capture = StateObject(wrappedValue: ClickPointCapture())
+        _automation = StateObject(wrappedValue: Automation(engine: engine))
     }
 
     var body: some Scene {
@@ -36,6 +38,8 @@ struct JiggleApp: App {
                 .environmentObject(engine)
                 .environmentObject(watcher)
                 .environmentObject(capture)
+                .environmentObject(automation.hotKey)
+                .environmentObject(automation.loginItem)
         }
     }
 

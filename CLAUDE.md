@@ -47,7 +47,10 @@ commit with a short clear message (no AI co-author / attribution trailers), list
 | `PermissionExplainer.swift`, `UntilPicker.swift`, `WindowPresenter.swift` | Auxiliary AppKit-hosted windows (agent app: no `Window` scenes, which could auto-open at launch) |
 | `StatusText.swift` | Pure menu status line formatting |
 | `MenuView.swift`, `SettingsView.swift`, `ClickSettingsView.swift`, `LinkedAppsView.swift` | UI. Settings tab selection lives in `UserDefaults` key `settingsTab` so menu items can open a given tab |
-| `HotKey.swift`, `LoginItem.swift`, `PowerMonitor.swift` | Carbon hotkey, `SMAppService`, battery/lock/sleep — M3 |
+| `HotKey.swift`, `LoginItem.swift`, `PowerMonitor.swift` | Carbon hotkey ⌃⌥⌘J, `SMAppService.mainApp`, battery guard + lock/sleep |
+| `Scheduler.swift`, `SessionNotifier.swift` | Pure `ScheduleWindow.contains` + 1-minute edge-based checker; timed-session-ended notification |
+| `Automation.swift` | Owns the M3 extras; re-applies settings on `UserDefaults.didChangeNotification` |
+| `*SettingsView.swift` | One file per Settings tab (General, Click, Linked Apps, Schedule, Power, Shortcut) |
 | `DebugMenu.swift` | Temporary "Debug" submenu (Debug builds only) — **remove in M4** |
 
 ### Modes (strength order keepAwake < zen < jiggle < jiggleClick)
