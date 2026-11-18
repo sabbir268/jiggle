@@ -3,6 +3,20 @@
 A small personal macOS menu bar app that keeps your Mac awake and "active". Native Swift/SwiftUI,
 no dependencies, no network access, no analytics.
 
+## Download
+
+**[Download the latest Jiggle DMG](https://github.com/sabbir268/jiggle/releases/latest)** (macOS 13 or later)
+
+1. Open the DMG and drag **Jiggle** onto **Applications**.
+2. Launch Jiggle from Applications. It lives in the menu bar (no Dock icon).
+3. The app isn't notarized by Apple yet, so macOS blocks the first launch. Open **System Settings → Privacy &
+   Security**, scroll down and click **Open Anyway** next to Jiggle. Or run:
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Jiggle.app
+   ```
+
+To build it yourself instead, see [Build](#build).
+
 ## Modes
 
 | Mode | What it does | Permission |
