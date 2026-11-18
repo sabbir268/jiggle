@@ -79,6 +79,21 @@ Apple ID is enough).
 
 Keep Awake, Zen, the hotkey, linked apps, schedule and power features need no permission.
 
+## Keeping it running with the lid closed
+
+macOS always sleeps a MacBook when the lid closes. Jiggle can't prevent that with a normal power assertion.
+There are two ways around it:
+
+- **Clamshell mode:** connect power, an external display and a keyboard or mouse. This is the recommended way.
+- **Settings → Power → Lid closed:**
+  1. Click **Set Up…** once and enter your password. This installs `/etc/sudoers.d/jiggle-pmset`, which only
+     allows `pmset -a disablesleep 0` and `pmset -a disablesleep 1`.
+  2. Turn on **Keep running with the lid closed**.
+
+  While a session runs, all system sleep is then off, and lock or screen sleep don't stop it. Sleep comes back
+  on Stop, the battery guard, Quit, or the next launch after a crash. **Remove** takes the sudo rule out again.
+  A closed, running MacBook can overheat in a bag. If sleep ever stays off, run `sudo pmset -a disablesleep 0`.
+
 ## Using Jiggle + Click safely
 
 Clicks are real. Before using this mode:

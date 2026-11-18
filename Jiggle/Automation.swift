@@ -7,6 +7,7 @@ import Foundation
 final class Automation: ObservableObject {
     let hotKey: HotKey
     let loginItem = LoginItem()
+    let lidGuard: LidCloseGuard
 
     private let engine: JiggleEngine
     private let settings: SettingsStore
@@ -23,6 +24,9 @@ final class Automation: ObservableObject {
         hotKey = HotKey { [weak engine] in engine?.toggle() }
         scheduler = Scheduler(engine: engine, settings: settings)
         power = PowerMonitor(engine: engine, settings: settings)
+        lidGuard = LidCloseGuard(engine: engine, settings: settings)
+        let lidGuard = lidGuard
+        power.ignoresLockAndSleep = { lidGuard.isEngaged }
 
         let notifier = notifier
         engine.onTimedSessionEnded = {
@@ -43,6 +47,14 @@ final class Automation: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 MainActor.assumeIsolated { self?.power.checkBattery() }
+            }
+            .store(in: &cancellables)
+        // Turn sleep off/on as sessions start and stop (after the value is stored, hence receive(on:)).
+        engine.$isActive
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                MainActor.assumeIsolated { self?.lidGuard.update() }
             }
             .store(in: &cancellables)
 
@@ -75,5 +87,6 @@ final class Automation: ObservableObject {
         hotKey.setEnabled(settings.hotkeyEnabled)
         scheduler.apply()
         power.checkBattery()
+        lidGuard.update()
     }
 }

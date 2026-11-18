@@ -4,6 +4,7 @@ struct MenuView: View {
     @EnvironmentObject private var engine: JiggleEngine
     @EnvironmentObject private var watcher: AppWatcher
     @EnvironmentObject private var capture: ClickPointCapture
+    @EnvironmentObject private var lidGuard: LidCloseGuard
 
     private static let presets: [(title: String, seconds: TimeInterval)] = [
         ("15 min", 15 * 60), ("30 min", 30 * 60), ("1 h", 60 * 60), ("2 h", 2 * 60 * 60), ("4 h", 4 * 60 * 60),
@@ -16,6 +17,9 @@ struct MenuView: View {
             linkedRunning: watcher.runningLinked.map(\.name), now: Date()
         ))
         .onAppear { engine.refreshAccessibility() }
+        if lidGuard.isEngaged {
+            Label("Lid closed: system sleep is off", systemImage: "laptopcomputer")
+        }
         if let warning = engine.warning {
             Label(warning, systemImage: "exclamationmark.triangle")
             Button("Grant Accessibility…") { PermissionExplainer.show() }

@@ -41,6 +41,8 @@ final class PowerMonitor {
     private let settings: SettingsStore
     private var runLoopSource: CFRunLoopSource?
     private var observers: [(center: NotificationCenter, token: any NSObjectProtocol)] = []
+    /// True while lid-closed mode keeps the Mac awake: then lock and display sleep must not stop the session.
+    var ignoresLockAndSleep: () -> Bool = { false }
     /// The session stopped by lock/sleep, for resume on unlock.
     private var suspended: (reason: ActiveReason, endsAt: Date?)?
 
@@ -92,7 +94,7 @@ final class PowerMonitor {
     }
 
     private func suspendForLockOrSleep() {
-        guard settings.stopOnLock, engine.isActive else { return }
+        guard settings.stopOnLock, engine.isActive, !ignoresLockAndSleep() else { return }
         suspended = (engine.activeReason ?? .manual, engine.endsAt)
         engine.stop()
     }

@@ -83,6 +83,9 @@ enum SettingsKey {
     static let scheduleStart = "scheduleStart"
     static let scheduleEnd = "scheduleEnd"
     static let notifyOnSessionEnd = "notifyOnSessionEnd"
+    static let keepRunningLidClosed = "keepRunningLidClosed"
+    /// Internal: Jiggle turned system sleep off and has not restored it yet.
+    static let lidSleepDisabledByJiggle = "lidSleepDisabledByJiggle"
 }
 
 enum SettingsDefault {
@@ -120,6 +123,7 @@ enum SettingsDefault {
     static let scheduleStart = 9 * 60
     static let scheduleEnd = 18 * 60
     static let notifyOnSessionEnd = true
+    static let keepRunningLidClosed = false
 
     static var registrationDictionary: [String: Any] {
         [
@@ -145,6 +149,7 @@ enum SettingsDefault {
             SettingsKey.scheduleStart: scheduleStart,
             SettingsKey.scheduleEnd: scheduleEnd,
             SettingsKey.notifyOnSessionEnd: notifyOnSessionEnd,
+            SettingsKey.keepRunningLidClosed: keepRunningLidClosed,
         ]
     }
 }
@@ -243,6 +248,12 @@ struct SettingsStore {
     var scheduleStart: Int { clamped(SettingsKey.scheduleStart, 0...(24 * 60 - 1)) }
     var scheduleEnd: Int { clamped(SettingsKey.scheduleEnd, 0...(24 * 60 - 1)) }
     var notifyOnSessionEnd: Bool { defaults.bool(forKey: SettingsKey.notifyOnSessionEnd) }
+    var keepRunningLidClosed: Bool { defaults.bool(forKey: SettingsKey.keepRunningLidClosed) }
+
+    var lidSleepDisabledByJiggle: Bool {
+        get { defaults.bool(forKey: SettingsKey.lidSleepDisabledByJiggle) }
+        nonmutating set { defaults.set(newValue, forKey: SettingsKey.lidSleepDisabledByJiggle) }
+    }
 
     private func clamped(_ key: String, _ range: ClosedRange<Int>) -> Int {
         min(max(defaults.integer(forKey: key), range.lowerBound), range.upperBound)

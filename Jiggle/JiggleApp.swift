@@ -29,6 +29,7 @@ struct JiggleApp: App {
                 .environmentObject(engine)
                 .environmentObject(watcher)
                 .environmentObject(capture)
+                .environmentObject(automation.lidGuard)
         } label: {
             if let countdown = capture.countdown {
                 Text("\(Image(systemName: "scope")) \(countdown)")
@@ -45,6 +46,7 @@ struct JiggleApp: App {
                 .environmentObject(capture)
                 .environmentObject(automation.hotKey)
                 .environmentObject(automation.loginItem)
+                .environmentObject(automation.lidGuard)
         }
     }
 

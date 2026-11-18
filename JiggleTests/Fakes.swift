@@ -131,3 +131,23 @@ extension XCTestCase {
         wait(for: [done], timeout: seconds + 2)
     }
 }
+
+@MainActor
+final class FakeLidSleep: LidSleepControlling {
+    var isSetUp = true
+    var sleepDisabled = false
+    var failChanges = false
+    private(set) var changes: [Bool] = []
+
+    func isSleepDisabled() -> Bool { sleepDisabled }
+
+    func setSleepDisabled(_ disabled: Bool) -> Bool {
+        changes.append(disabled)
+        guard !failChanges else { return false }
+        sleepDisabled = disabled
+        return true
+    }
+
+    func setUp() throws { isSetUp = true }
+    func remove() throws { isSetUp = false }
+}

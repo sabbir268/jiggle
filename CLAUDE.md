@@ -53,6 +53,7 @@ commit with a short clear message (no AI co-author / attribution trailers), list
 | `MenuView.swift`, `SettingsView.swift`, `ClickSettingsView.swift`, `LinkedAppsView.swift` | UI. Settings tab selection lives in `UserDefaults` key `settingsTab` so menu items can open a given tab |
 | `HotKey.swift`, `LoginItem.swift`, `PowerMonitor.swift` | Carbon hotkey ⌃⌥⌘J, `SMAppService.mainApp`, battery guard + lock/sleep |
 | `Scheduler.swift`, `SessionNotifier.swift` | Pure `ScheduleWindow.contains` + 1-minute edge-based checker; timed-session-ended notification |
+| `LidSleep.swift` | Lid-closed mode: `pmset -a disablesleep` via a scoped sudo rule; restored on every stop path and after a crash |
 | `Automation.swift` | Owns the M3 extras; re-applies settings on `UserDefaults.didChangeNotification` |
 | `*SettingsView.swift` | One file per Settings tab (General, Click, Linked Apps, Schedule, Power, Shortcut) |
 | `JiggleTests/` | Hosted XCTest bundle (macOS 14 target, required by Xcode 27's XCTest). `Fakes.swift` fakes every system protocol |
