@@ -31,11 +31,7 @@ struct JiggleApp: App {
                 .environmentObject(capture)
                 .environmentObject(automation.lidGuard)
         } label: {
-            if let countdown = capture.countdown {
-                Text("\(Image(systemName: "scope")) \(countdown)")
-            } else {
-                Image(systemName: menuBarSymbol)
-            }
+            MenuBarLabel(engine: engine, capture: capture, lidGuard: automation.lidGuard)
         }
         .menuBarExtraStyle(.menu)
 
@@ -48,10 +44,5 @@ struct JiggleApp: App {
                 .environmentObject(automation.loginItem)
                 .environmentObject(automation.lidGuard)
         }
-    }
-
-    private var menuBarSymbol: String {
-        guard engine.isActive else { return "cursorarrow" }
-        return engine.runningMode == .jiggleClick ? "cursorarrow.click.2" : "cursorarrow.motionlines"
     }
 }
